@@ -57,22 +57,23 @@ def binaryimg(img):
     # cv2.imwrite(fname, dst)
 
 def rmvWhiteBackground(img):
-    #image
-    img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    #use this if loading in bgr
+    # img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    img_rgb = img
+    #image hsv
     img_hsv = cv2.cvtColor(img_rgb, cv2.COLOR_BGR2HSV)
 
     #panel
     hsv_panel = np.zeros([100, 700], np.uint8)
     cv2.namedWindow('hsv_panel')
-    # cv2.resizeWindow('hsv_panel', 500, 100)
     #lower
     cv2.createTrackbar('lh', 'hsv_panel', 0, 255, nothing)
-    cv2.createTrackbar('ls', 'hsv_panel', 0, 255, nothing)
-    cv2.createTrackbar('lv', 'hsv_panel', 0, 255, nothing)
+    cv2.createTrackbar('ls', 'hsv_panel', 100, 255, nothing)
+    cv2.createTrackbar('lv', 'hsv_panel', 120, 255, nothing)
     #upper
-    cv2.createTrackbar('uh', 'hsv_panel', 0, 255, nothing)
-    cv2.createTrackbar('us', 'hsv_panel', 0, 255, nothing)
-    cv2.createTrackbar('uv', 'hsv_panel', 0, 255, nothing)
+    cv2.createTrackbar('uh', 'hsv_panel', 50, 255, nothing)
+    cv2.createTrackbar('us', 'hsv_panel', 255, 255, nothing)
+    cv2.createTrackbar('uv', 'hsv_panel', 255, 255, nothing)
 
     while True:
         lh = cv2.getTrackbarPos('lh', 'hsv_panel')
@@ -91,8 +92,8 @@ def rmvWhiteBackground(img):
         mask_inv = cv2.bitwise_not(mask)
 
         #mask on rgb img
-        background = cv2.bitwise_and(img_rgb, img_rgb, mask=mask)
-        banana = cv2.bitwise_and(img_rgb, img_rgb, mask=mask_inv)
+        banana = cv2.bitwise_and(img_rgb, img_rgb, mask=mask)
+        background = cv2.bitwise_and(img_rgb, img_rgb, mask=mask_inv)
     
         #show image and panel
         cv2.imshow('hsv_panel', hsv_panel)
@@ -100,7 +101,7 @@ def rmvWhiteBackground(img):
         showimg('banana', banana)
     
         #exit on escape
-        k = cv2.waitKey(0) & 0xFF
+        k = cv2.waitKey(30) & 0xFF
         if k == 27:
             cv2.destroyAllWindows()
             break
