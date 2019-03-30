@@ -104,45 +104,59 @@ def rmvWhiteBackground(img):
         k = cv2.waitKey(30) & 0xFF
         if k == 27:
             cv2.destroyAllWindows()
-            break
+            return banana
+
+        
 
 # get image
 fp = sys.argv[1]
 rawimg = cv2.imread(fp)
 
-# convert grayscale
-grayimg = cv2.cvtColor(rawimg, cv2.COLOR_RGB2GRAY)
-if grayimg is None:
-    print("error opening file\n")
 
-# seperate background
-cv2.imwrite("gray.png", grayimg)
 
 #binary
 # binaryimg(grayimg)
 
+#convert grayscale
+grayimg = cv2.cvtColor(rawimg, cv2.COLOR_RGB2GRAY)
+#improve contrast
+clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
+imgCLAHE = clahe.apply(grayimg)
+# showimg("grayimg", grayimg)
+# showimg("CLAHE", imgCLAHE)
+
 #remove background
-rmvWhiteBackground(rawimg)
+# nowhite = rmvWhiteBackground(rawimg)
+# nowhite = cv2.cvtColor(rawimg, cv2.COLOR_RGB2GRAY)
+# nowhite = clahe.apply(nowhite)
 
-#edge
-blurimg = cv2.GaussianBlur(grayimg, (11, 11), 0)
-lp = cv2.Laplacian(blurimg, cv2.CV_64F, ksize=5)
-canny = cv2.Canny(rawimg, 100, 150)
-
-showimg("LaPlace", lp)
+#edge detection
+#using canny
+blurimg = cv2.GaussianBlur(imgCLAHE, (5, 5), 0)
+canny = cv2.Canny(blurimg, 100, 150)
 showimg("Canny", canny)
 
 # get contour
-# _, contours, hierarchy = cv2.findContours(dst, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+imgcanny = rawimg
+test = rawimg
+_, contours, hierarchy = cv2.findContours(canny, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_TC89_L1) #cv2.CHAIN_APPROX_SIMPLE)
 
-# contour_list = []
-# for contour in contours:
-#     area = cv2.contourArea(contour)
-#     if area > 500 :
-#         contour_list.append(contour)
+count = 0
+for contour in contours:
+    epsilion = 0.01 * cv2.arcLength(contour, True)
+    approx = cv2.approxPolyDP(contour, epsilion, True)
+    
+    area = cv2.contourArea(contour)
+    if area > 100 :
+        count = count + 1
+        img = cv2.drawContours(test, [approx], 0, (255,0,0), 3)
+    img = cv2.drawContours(imgcanny, [approx], 0, (255,0,0), 3)
 
-# cv2.drawContours(rawimg, contour_list,  -1, (0,180,255), 2)
-# showimg("Objects Detected Contour", rawimg)
+cannyname = "Objects Detected Canny: %d vs %d " % (len(contours), count)
+showimg(cannyname, imgcanny)
+showimg('test', test)
+
+
 
 # wait for user to exit
 cv2.waitKey(0) 
