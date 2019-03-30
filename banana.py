@@ -137,8 +137,8 @@ canny = cv2.Canny(blurimg, 100, 150)
 showimg("Canny", canny)
 
 # get contour
-imgcanny = rawimg
-test = rawimg
+imgcanny = rawimg.copy()
+test = rawimg.copy()
 _, contours, hierarchy = cv2.findContours(canny, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_TC89_L1) #cv2.CHAIN_APPROX_SIMPLE)
 
 count = 0
@@ -149,10 +149,11 @@ for contour in contours:
     area = cv2.contourArea(contour)
     if area > 100 :
         count = count + 1
-        img = cv2.drawContours(test, [approx], 0, (255,0,0), 3)
+        testcnt = cv2.drawContours(test, [approx], 0, (255,0,0), 3)
     img = cv2.drawContours(imgcanny, [approx], 0, (255,0,0), 3)
 
 cannyname = "Objects Detected Canny: %d vs %d " % (len(contours), count)
+showimg('Raw', rawimg)
 showimg(cannyname, imgcanny)
 showimg('test', test)
 
