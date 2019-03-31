@@ -136,10 +136,17 @@ blurimg = cv2.GaussianBlur(imgCLAHE, (5, 5), 0)
 canny = cv2.Canny(blurimg, 100, 150)
 showimg("Canny", canny)
 
-# get contour
+# Perform morphology
+se = np.ones((7,7), dtype='uint8')
+image_close = cv2.morphologyEx(canny, cv2.MORPH_TOPHAT, se)
+showimg("image_close", image_close)
+
+#copies
 imgcanny = rawimg.copy()
 test = rawimg.copy()
-_, contours, hierarchy = cv2.findContours(canny, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_TC89_L1) #cv2.CHAIN_APPROX_SIMPLE)
+
+# get contour CHAIN_APPROX_SIMPLE CHAIN_APPROX_TC89_L1
+_, contours, hierarchy = cv2.findContours(canny, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
 count = 0
 for contour in contours:
@@ -152,10 +159,11 @@ for contour in contours:
         testcnt = cv2.drawContours(test, [approx], 0, (255,0,0), 3)
     img = cv2.drawContours(imgcanny, [approx], 0, (255,0,0), 3)
 
-cannyname = "Objects Detected Canny: %d vs %d " % (len(contours), count)
-showimg('Raw', rawimg)
+cannyname = "Objects Detected Canny: %d" % (len(contours))
+testname = "Objects Detected Test: %d" % (count)
+
 showimg(cannyname, imgcanny)
-showimg('test', test)
+showimg(testname, test)
 
 
 
