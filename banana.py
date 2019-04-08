@@ -25,37 +25,6 @@ def showimg(name, img):
 def nothing(x):
     pass
 
-def binaryimg(img):
-    bipanel = np.zeros([100, 700], np.uint8)
-    cv2.namedWindow('bipanel')
-    cv2.resizeWindow('bipanel', 500, 100)
-    cv2.createTrackbar('thr', 'bipanel', 0, 255, nothing)
-    cv2.createTrackbar('max', 'bipanel', 0, 255, nothing)
-
-    while True:
-        thresh = cv2.getTrackbarPos('thr', 'bipanel')
-        maxval = cv2.getTrackbarPos('max', 'bipanel')
-    
-        # mask = cv2.inRange(hsv, lower_green, upper_green)
-        # mask_inv = cv2.bitwise_not(mask)
-    
-        # bg = cv2.bitwise_and(roi, roi, mask=mask)
-        # fg = cv2.bitwise_and(roi, roi, mask=mask_inv)
-
-        th, dst = cv2.threshold(img, thresh, maxval, cv2.THRESH_BINARY)
-    
-        cv2.imshow('bipanel', bipanel)
-        showimg('binary', dst)
-    
-        k = cv2.waitKey(0) & 0xFF
-        if k == 27:
-            cv2.destroyAllWindows()
-            break
-
-    #save to file
-    # fname = "binary.png"
-    # cv2.imwrite(fname, dst)
-
 def rmvWhiteBackground(img):
     #use this if loading in bgr
     # img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -105,7 +74,45 @@ def rmvWhiteBackground(img):
         if k == 27:
             cv2.destroyAllWindows()
             return banana
+    
+def getcontours(rawimg, img, techname):
+    #copies
+    imgcanny = rawimg.copy()
+    test = rawimg.copy()
 
+    # get contour CHAIN_APPROX_SIMPLE CHAIN_APPROX_TC89_L1
+    _, contours, hierarchy = cv2.findContours(img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    count = 0
+    lCon = None
+    lArea = 0
+    for contour in contours:
+        epsilion = 0.01 * cv2.arcLength(contour, True)
+        approx = cv2.approxPolyDP(contour, epsilion, True)
+        
+        area = cv2.contourArea(contour)
+        # if area > 100 :
+        #     count = count + 1
+        #     test = cv2.drawContours(test, [approx], 0, (255,0,0), 3)
+
+        if area > lArea:
+            lArea = area
+            lCon = contour
+        
+        imgcanny = cv2.drawContours(imgcanny, [approx], 0, (255,0,0), 3)
+
+    #largest
+    epsilion = 0.01 * cv2.arcLength(lCon, True)
+    approx = cv2.approxPolyDP(lCon, epsilion, True)
+    test = cv2.drawContours(test, [approx], 0, (255,0,0), 3)
+
+    #name
+    cannyname = "%s: %d" % (techname, len(contours))
+    testname = "%s Largest Area" % (techname)
+
+    #show image
+    showimg(cannyname, imgcanny)
+    showimg(testname, test)
         
 
 # get image
@@ -113,59 +120,67 @@ fp = sys.argv[1]
 rawimg = cv2.imread(fp)
 
 
-
-#binary
-# binaryimg(grayimg)
+##########################
+# background subtraction #
+##########################
 
 #convert grayscale
 grayimg = cv2.cvtColor(rawimg, cv2.COLOR_RGB2GRAY)
+
 #improve contrast
 clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
 imgCLAHE = clahe.apply(grayimg)
+
 # showimg("grayimg", grayimg)
 # showimg("CLAHE", imgCLAHE)
 
 #remove background
-# nowhite = rmvWhiteBackground(rawimg)
-# nowhite = cv2.cvtColor(rawimg, cv2.COLOR_RGB2GRAY)
-# nowhite = clahe.apply(nowhite)
+nowhite = rmvWhiteBackground(rawimg)
+nowhite = cv2.cvtColor(nowhite, cv2.COLOR_RGB2GRAY)
+nowhite = clahe.apply(nowhite)
 
-#edge detection
-#using canny
-blurimg = cv2.GaussianBlur(imgCLAHE, (5, 5), 0)
-canny = cv2.Canny(blurimg, 100, 150)
-showimg("Canny", canny)
+#blur to remove small details
+blurimg = cv2.GaussianBlur(nowhite, (5, 5), 0)
+# showimg("nowhite", nowhite)
 
-# Perform morphology
+##################
+# edge detection #
+##################
+
+# #using canny
+# canny = cv2.Canny(blurimg, 100, 150)
+# # showimg("Canny", canny)
+
+# # Perform morphology MORPH_CLOSE MORPH_TOPHAT
+# se = np.ones((7,7), dtype='uint8')
+# image_close = cv2.morphologyEx(canny, cv2.MORPH_TOPHAT, se)
+# # showimg("image_close using canny", image_close)
+
+# getcontours(rawimg, canny, "Canny")
+
+##################
+# edge detection #
+##################
+
+#using laplacian
+ddepth = 3
+kernel_size = 3
+imglap = cv2.Laplacian(blurimg, ddepth=cv2.CV_8U,ksize = 3)
+# showimg("imglap", imglap)
+
+# Perform morphology MORPH_CLOSE MORPH_TOPHAT
 se = np.ones((7,7), dtype='uint8')
-image_close = cv2.morphologyEx(canny, cv2.MORPH_TOPHAT, se)
-showimg("image_close", image_close)
+image_close_lap = cv2.morphologyEx(imglap, cv2.MORPH_TOPHAT, se)
+# showimg("image_close using laplacian", image_close_lap)
 
-#copies
-imgcanny = rawimg.copy()
-test = rawimg.copy()
+getcontours(rawimg, image_close_lap, "Laplacian")
 
-# get contour CHAIN_APPROX_SIMPLE CHAIN_APPROX_TC89_L1
-_, contours, hierarchy = cv2.findContours(canny, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+##################
+# edge detection #
+##################
 
-count = 0
-for contour in contours:
-    epsilion = 0.01 * cv2.arcLength(contour, True)
-    approx = cv2.approxPolyDP(contour, epsilion, True)
-    
-    area = cv2.contourArea(contour)
-    if area > 100 :
-        count = count + 1
-        testcnt = cv2.drawContours(test, [approx], 0, (255,0,0), 3)
-    img = cv2.drawContours(imgcanny, [approx], 0, (255,0,0), 3)
-
-cannyname = "Objects Detected Canny: %d" % (len(contours))
-testname = "Objects Detected Test: %d" % (count)
-
-showimg(cannyname, imgcanny)
-showimg(testname, test)
-
-
+# using hough circles
+circles = cv2.HoughCircles(blurimg,cv2.HOUGH_GRADIENT,1,120,param1=50,param2=30,minRadius=50, maxRadius=150)
 
 # wait for user to exit
 cv2.waitKey(0) 
