@@ -14,5 +14,4 @@ Will determine 5 stages of a banana:
 
 Created by:
 Andrew Maklingham
-
-Gurditt Rai
+& Gurditt Rai
