@@ -70,12 +70,13 @@ def LABConversion(img):
             b = b - 128
             L = L * 100 / 225
             if L != 100 and L != 0:
-                if a < -1:
-                    green += 1
-                elif a > 13 and b < 55:
-                    brown += 1
-                elif a < 13 and b > 55:
+                if a < 18 and b > 47 and a > -7:
                     yellow += 1
+                elif a < -7:
+                    green += 1
+                elif a > 15 and b < 58 and L > 19:
+                    brown += 1
+
 
     total = green + yellow + brown
     greenPer = (green/total)*100
@@ -84,17 +85,17 @@ def LABConversion(img):
     print("green: ", greenPer)
     print("yellow: ", yellowPer)
     print("brown: ", brownPer)
-    if brownPer >= 30:
-        if brownPer >= 60:
+    if brownPer >= 35:
+        if brownPer >= 50:
             print("banana is very over ripe")
         else:
             print("banana is over ripe")
     elif greenPer >= 30:
-        if greenPer >= 60:
+        if greenPer >= 50:
             print("banana is very unripe")
         else:
             print("banana is unripe")
-    elif yellowPer > 60:
+    elif yellowPer > 50:
         print("banana is ripe")
     else:
         print("banana is over ripe")
@@ -108,41 +109,43 @@ def rmvWhiteBackground(img):
     #image hsv
     img_hsv = cv2.cvtColor(img_rgb, cv2.COLOR_BGR2HSV)
 
-    #panel
-    hsv_panel = np.zeros([100, 700], np.uint8)
-    cv2.namedWindow('hsv_panel')
-    #lower
-    cv2.createTrackbar('lh', 'hsv_panel', 0, 255, nothing)
-    cv2.createTrackbar('ls', 'hsv_panel', 100, 255, nothing)
-    cv2.createTrackbar('lv', 'hsv_panel', 120, 255, nothing)
-    #upper
-    cv2.createTrackbar('uh', 'hsv_panel', 50, 255, nothing)
-    cv2.createTrackbar('us', 'hsv_panel', 255, 255, nothing)
-    cv2.createTrackbar('uv', 'hsv_panel', 255, 255, nothing)
-
     while True:
-        lh = cv2.getTrackbarPos('lh', 'hsv_panel')
-        ls = cv2.getTrackbarPos('ls', 'hsv_panel')
-        lv = cv2.getTrackbarPos('lv', 'hsv_panel')
-        uh = cv2.getTrackbarPos('uh', 'hsv_panel')
-        us = cv2.getTrackbarPos('us', 'hsv_panel')
-        uv = cv2.getTrackbarPos('uv', 'hsv_panel')
 
-        #detect colour space
-        lower_white = np.array([lh,ls,lv])
-        upper_white = np.array([uh,us,uv])
+        #colour values for green
+        G_lower = np.array([28,46,45])
+        G_upper = np.array([70,255,255])
 
-        #mask
-        mask = cv2.inRange(img_hsv, lower_white, upper_white)
-        mask_inv = cv2.bitwise_not(mask)
+        #green mask
+        green_mask = cv2.inRange(img_hsv, G_lower, G_upper)
+        green_mask_inv = cv2.bitwise_not(green_mask)
+
+        #yellow values
+        Y_lower = np.array([18,85,0])
+        Y_upper = np.array([28,255,255])
+
+        #brown values
+        B_lower = np.array([1,20,20])
+        B_upper = np.array([10,255,150])
+
+        #yellow mask
+        yellow_mask = cv2.inRange(img_hsv, Y_lower, Y_upper)
+        yellow_mask_inv = cv2.bitwise_not(yellow_mask)
+
+        #brown mask
+        brown_mask = cv2.inRange(img_hsv, B_lower, B_upper)
+        brown_mask_inv = cv2.bitwise_not(brown_mask)
 
         #mask on rgb img
-        banana = cv2.bitwise_and(img_rgb, img_rgb, mask=mask)
-        background = cv2.bitwise_and(img_rgb, img_rgb, mask=mask_inv)
+        Y_banana = cv2.bitwise_and(img_rgb, img_rgb, mask=yellow_mask)
+        Y_background = cv2.bitwise_and(img_rgb, img_rgb, mask=yellow_mask_inv)
+        G_banana = cv2.bitwise_and(img_rgb, img_rgb, mask=green_mask)
+        G_background = cv2.bitwise_and(img_rgb, img_rgb, mask=green_mask_inv)
 
-        #show image and panel
-        cv2.imshow('hsv_panel', hsv_panel)
-        showimg('background', background)
+        #Combine masks
+        banana = cv2.bitwise_and(img_rgb, img_rgb, mask=green_mask+yellow_mask+brown_mask)
+        background = cv2.bitwise_and(img_rgb, img_rgb, mask=brown_mask_inv+yellow_mask_inv+green_mask_inv)
+
+        #showimg('background', background)
         showimg('banana', banana)
 
         #exit on escape
@@ -151,7 +154,8 @@ def rmvWhiteBackground(img):
             cv2.destroyAllWindows()
             #calculate the L*A*B* values
             LABConversion(banana)
-            return banana
+            H, S, V = cv2.split(banana)
+            return V
 
 
 
@@ -159,61 +163,60 @@ def rmvWhiteBackground(img):
 # get image
 fp = sys.argv[1]
 rawimg = cv2.imread(fp)
-
-
-
-#binary
-# binaryimg(grayimg)
-
-#convert grayscale
-grayimg = cv2.cvtColor(rawimg, cv2.COLOR_RGB2GRAY)
-#improve contrast
-clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
-imgCLAHE = clahe.apply(grayimg)
-# showimg("grayimg", grayimg)
-# showimg("CLAHE", imgCLAHE)
-
 #remove background
-nowhite = rmvWhiteBackground(rawimg)
-nowhite = cv2.cvtColor(rawimg, cv2.COLOR_RGB2GRAY)
-nowhite = clahe.apply(nowhite)
+noBack = rmvWhiteBackground(rawimg)
 
-#edge detection
-#using canny
-blurimg = cv2.GaussianBlur(imgCLAHE, (5, 5), 0)
-canny = cv2.Canny(blurimg, 100, 150)
-showimg("Canny", canny)
+def edge(img):
 
-# Perform morphology
-se = np.ones((7,7), dtype='uint8')
-image_close = cv2.morphologyEx(canny, cv2.MORPH_TOPHAT, se)
-showimg("image_close", image_close)
+    #binary
+    # binaryimg(grayimg)
 
-#copies
-imgcanny = rawimg.copy()
-test = rawimg.copy()
+    #convert grayscale
+    #grayimg = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
 
-# get contour CHAIN_APPROX_SIMPLE CHAIN_APPROX_TC89_L1
-contours, hierarchy = cv2.findContours(canny, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    #improve contrast
+    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
+    img = clahe.apply(img)
+    imgCLAHE = clahe.apply(img)
+    # showimg("grayimg", grayimg)
+    # showimg("CLAHE", imgCLAHE)
 
-count = 0
-for contour in contours:
-    epsilion = 0.01 * cv2.arcLength(contour, True)
-    approx = cv2.approxPolyDP(contour, epsilion, True)
+    #edge detection
+    #using canny
+    blurimg = cv2.GaussianBlur(imgCLAHE, (5, 5), 0)
+    canny = cv2.Canny(blurimg, 100, 150)
+    ##showimg("Canny", canny)
 
-    area = cv2.contourArea(contour)
-    if area > 100 :
-        count = count + 1
-        testcnt = cv2.drawContours(test, [approx], 0, (255,0,0), 3)
-    img = cv2.drawContours(imgcanny, [approx], 0, (255,0,0), 3)
+    # Perform morphology
+    se = np.ones((7,7), dtype='uint8')
+    image_close = cv2.morphologyEx(canny, cv2.MORPH_TOPHAT, se)
+    ##showimg("image_close", image_close)
 
-cannyname = "Objects Detected Canny: %d" % (len(contours))
-testname = "Objects Detected Test: %d" % (count)
+    #copies
+    imgcanny = img.copy()
+    test = img.copy()
 
-showimg(cannyname, imgcanny)
-showimg(testname, test)
+    # get contour CHAIN_APPROX_SIMPLE CHAIN_APPROX_TC89_L1
+    contours, hierarchy = cv2.findContours(canny, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
+    count = 0
+    for contour in contours:
+        epsilion = 0.01 * cv2.arcLength(contour, True)
+        approx = cv2.approxPolyDP(contour, epsilion, True)
 
+        area = cv2.contourArea(contour)
+        if area > 100 :
+            count = count + 1
+            testcnt = cv2.drawContours(test, [approx], 0, (255,0,0), 3)
+        img = cv2.drawContours(imgcanny, [approx], 0, (255,0,0), 3)
+
+    cannyname = "Objects Detected Canny: %d" % (len(contours))
+    testname = "Objects Detected Test: %d" % (count)
+
+    #showimg(cannyname, imgcanny)
+    #showimg(testname, test)
+
+edge(noBack)
 
 # wait for user to exit
 cv2.waitKey(0)

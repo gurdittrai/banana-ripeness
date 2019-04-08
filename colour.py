@@ -11,7 +11,7 @@ fp = sys.argv[1]
 rawimg = cv2.imread(fp)
 #xyzImg=cv2.cvtColor(rawimg,cv2.COLOR_RGB2XYZ)
 labImg=cv2.cvtColor(rawimg,cv2.COLOR_BGR2LAB)
-L,A,B = labImg[207][267]
+L,A,B = labImg[398][429]
 #showimg("xyz", labImg)
 
 print(L*100/255)
