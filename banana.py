@@ -1,4 +1,5 @@
-# Reading Car Plate Numbers
+# Banana ripeness algoirthm
+# By: Andrew Maklingham, Gurditt Rai
 import cv2
 import numpy as np
 from PIL import Image
@@ -15,7 +16,6 @@ def showimg(name, img):
     aratio = w/float(h)
     h = 700
     w = int(h * aratio)
-
 
     #window
     cv2.namedWindow(name, cv2.WINDOW_NORMAL)
@@ -70,13 +70,12 @@ def LABConversion(img):
             b = b - 128
             L = L * 100 / 225
             if L != 100 and L != 0:
-                if a < 18 and b > 47 and a > -7:
+                if a < 18 and b > 47 and a > -17:
                     yellow += 1
                 elif a < -7:
                     green += 1
-                elif a > 15 and b < 58 and L > 19:
+                elif a > 10 and b < 47 and L > 19:
                     brown += 1
-
 
     total = green + yellow + brown
     greenPer = (green/total)*100
@@ -91,7 +90,7 @@ def LABConversion(img):
         else:
             print("banana is over ripe")
     elif greenPer >= 30:
-        if greenPer >= 50:
+        if greenPer >= 60:
             print("banana is very unripe")
         else:
             print("banana is unripe")
@@ -100,17 +99,15 @@ def LABConversion(img):
     else:
         print("banana is over ripe")
 
-
-
 def rmvWhiteBackground(img):
     #use this if loading in bgr
     # img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
     img_rgb = img
     #image hsv
     img_hsv = cv2.cvtColor(img_rgb, cv2.COLOR_BGR2HSV)
 
     while True:
-
         #colour values for green
         G_lower = np.array([28,46,45])
         G_upper = np.array([70,255,255])
@@ -124,8 +121,8 @@ def rmvWhiteBackground(img):
         Y_upper = np.array([28,255,255])
 
         #brown values
-        B_lower = np.array([1,20,20])
-        B_upper = np.array([10,255,150])
+        B_lower = np.array([2,20,20])
+        B_upper = np.array([12,255,150])
 
         #yellow mask
         yellow_mask = cv2.inRange(img_hsv, Y_lower, Y_upper)
@@ -135,17 +132,23 @@ def rmvWhiteBackground(img):
         brown_mask = cv2.inRange(img_hsv, B_lower, B_upper)
         brown_mask_inv = cv2.bitwise_not(brown_mask)
 
-        #mask on rgb img
+        #mask on rgb img. Each of these are only used for testing purposes.
         Y_banana = cv2.bitwise_and(img_rgb, img_rgb, mask=yellow_mask)
         Y_background = cv2.bitwise_and(img_rgb, img_rgb, mask=yellow_mask_inv)
         G_banana = cv2.bitwise_and(img_rgb, img_rgb, mask=green_mask)
         G_background = cv2.bitwise_and(img_rgb, img_rgb, mask=green_mask_inv)
+        B_banana = cv2.bitwise_and(img_rgb, img_rgb, mask=brown_mask)
+        B_background = cv2.bitwise_and(img_rgb, img_rgb, mask=brown_mask_inv)
 
-        #Combine masks
-        banana = cv2.bitwise_and(img_rgb, img_rgb, mask=green_mask+yellow_mask+brown_mask)
-        background = cv2.bitwise_and(img_rgb, img_rgb, mask=brown_mask_inv+yellow_mask_inv+green_mask_inv)
+        #Combine masks into one picture to get to total banana
+        banana = cv2.bitwise_and(img_hsv, img_hsv, mask=green_mask+yellow_mask+brown_mask)
+        background = cv2.bitwise_and(img_hsv, img_hsv, mask=brown_mask_inv+yellow_mask_inv+green_mask_inv)
 
         #showimg('background', background)
+        #showimg('banana', banana)
+
+        #convert the picure thie the background removed back to rgb for colour space LAB analysis
+        banana = cv2.cvtColor(banana, cv2.COLOR_HSV2BGR)
         showimg('banana', banana)
 
         #exit on escape
@@ -157,9 +160,6 @@ def rmvWhiteBackground(img):
             H, S, V = cv2.split(banana)
             return V
 
-
-
-
 # get image
 fp = sys.argv[1]
 rawimg = cv2.imread(fp)
@@ -167,12 +167,6 @@ rawimg = cv2.imread(fp)
 noBack = rmvWhiteBackground(rawimg)
 
 def edge(img):
-
-    #binary
-    # binaryimg(grayimg)
-
-    #convert grayscale
-    #grayimg = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
 
     #improve contrast
     clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
@@ -185,7 +179,7 @@ def edge(img):
     #using canny
     blurimg = cv2.GaussianBlur(imgCLAHE, (5, 5), 0)
     canny = cv2.Canny(blurimg, 100, 150)
-    ##showimg("Canny", canny)
+    #showimg("Canny", canny)
 
     # Perform morphology
     se = np.ones((7,7), dtype='uint8')
@@ -212,9 +206,7 @@ def edge(img):
 
     cannyname = "Objects Detected Canny: %d" % (len(contours))
     testname = "Objects Detected Test: %d" % (count)
-
     #showimg(cannyname, imgcanny)
-    #showimg(testname, test)
 
 edge(noBack)
 
