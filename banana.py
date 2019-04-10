@@ -46,47 +46,117 @@ def rmvBackground_minor(img):
             
 
 def LABConversion(img):
+    #dimensions
     height, width = img.shape[:2]
+
+    #covert image to Lab
     labImg=cv2.cvtColor(img,cv2.COLOR_BGR2LAB)
+    testimg = labImg.copy()
+    L, a, b = cv2.split(labImg)
+
+    #colours
     green = 0.0
     yellow = 0.0
     brown = 0.0
 
-    for i in range(height):
-        for k in range(width):
-            L,a,b = labImg[i][k]
-            a = a - 128
-            b = b - 128
-            L = L * 100 / 225
-            if L != 100 and L != 0:
-                if a < 18 and b > 47 and a > -17:
-                    yellow += 1
-                elif a < -7:
-                    green += 1
-                elif a > 10 and b < 47 and L > 19:
-                    brown += 1
+    #yellow
+    low = np.array([1,112,176])
+    upp = np.array([254,145,255])
 
+    #yellow layer
+    yellowimg = np.zeros_like(img)
+    yellowimg = cv2.inRange(labImg, low, upp)
+    
+    #get count of pixels
+    yellow = yellow + cv2.countNonZero(yellowimg)
+    print "yellow", yellow
+
+    #remove pixels from image
+    cv2.normalize(labImg, labImg, dtype=cv2.CV_8UC1 ,mask=yellowimg)
+
+    #green
+    low = np.array([1,0,0])
+    upp = np.array([254,120,255])
+
+    #green layer
+    greenimg = np.zeros_like(img)
+    greenimg = cv2.inRange(labImg, low, upp)
+
+    #get count of pixels
+    green = green + cv2.countNonZero(greenimg)
+    print "green", green
+
+    #remove pixels from image
+    cv2.normalize(labImg, labImg, dtype=cv2.CV_8UC1 ,mask=greenimg)
+
+    #brown
+    low = np.array([1,139,0])
+    upp = np.array([146,255,174])
+
+    #brown layer
+    brownimg = np.zeros_like(img)
+    brownimg = cv2.inRange(labImg, low, upp)
+
+    #get count of pixels
+    brown = brown + cv2.countNonZero(brownimg)
+    print "brown", brown
+
+    # #colours
+    # labImg = testimg
+    # green = 0.0
+    # yellow = 0.0
+    # brown = 0.0
+
+    # for i in range(height):
+    #     for k in range(width):
+    #         L,a,b = labImg[i][k]
+    #         a = a - 128
+    #         b = b - 128
+    #         L = L * 100 / 225
+    #         if L != 100 and L != 0:
+    #             if a < 18 and b > 47 and a > -17:
+    #                 yellow += 1
+    #             elif a < -7:
+    #                 green += 1
+    #             elif a > 10 and b < 47 and L > 19:
+    #                 brown += 1
+    
+    # print "yellow", yellow
+    # print "green", green
+    # print "brown", brown
+
+    #total
     total = green + yellow + brown
+    if (total == 0):
+        return -1
+    
+    #get colour percentages
     greenPer = (green/total)*100
     yellowPer = (yellow/total)*100
     brownPer = (brown/total)*100
-    print("green: ", greenPer)
-    print("yellow: ", yellowPer)
-    print("brown: ", brownPer)
+
+    #show percentages
+    print "green: ", greenPer
+    print "yellow: ", yellowPer
+    print "brown: ", brownPer
+
+    #calculate ripeness
     if brownPer >= 35:
         if brownPer >= 50:
-            print("banana is very over ripe")
+            return 4
         else:
-            print("banana is over ripe")
+            return 3
     elif greenPer >= 30:
         if greenPer >= 60:
-            print("banana is very unripe")
+            return 0
         else:
-            print("banana is unripe")
+            return 1
     elif yellowPer > 50:
-        print("banana is ripe")
+        return 2
     else:
-        print("banana is over ripe")
+        return 3
+
+    
 
 def rmvBackground(img):
     #image rgb
@@ -232,9 +302,15 @@ showimg("banana_area", banana_area)
 ###################
 # judging ripness #
 ###################
+#possible ripe values
+ans = ["banana is very unripe", "banana is unripe", "banana is ripe", "banana is over ripe", "banana is very over ripe"]
 
 #calculate the L*A*B* values
-# LABConversion(banana_area)
+ripe_value = LABConversion(banana_area)
+if (ripe_value == -1):
+    print "no colour detected"
+else:
+    print ans[ripe_value]
 
 
 # wait for user to exit
