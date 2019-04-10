@@ -24,6 +24,19 @@ def showimg(name, img):
 def nothing(x):
     pass
 
+def checkvisiblepercent(img, crop):
+    #split in order to compare
+    b1, g1, r1 = cv2.split(img)
+    b2, g2, r2 = cv2.split(crop)
+    diff_values = ((cv2.countNonZero(b2) / float(cv2.countNonZero(b1))) * 100, (cv2.countNonZero(g2) / float(cv2.countNonZero(g1))) * 100, (cv2.countNonZero(r2) / float(cv2.countNonZero(r1))) * 100)
+    print "bgr ", diff_values
+
+    #requires 20% visiblity (300 total) (300 * 0.2 = 240)
+    if (np.sum(diff_values) < 60):
+        return 0
+
+    return 1
+
 def rmvBackground_minor(img):
     #use this if loading in bgr
     # img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -127,6 +140,7 @@ def LABConversion(img):
 
     #total
     total = green + yellow + brown
+    #no colours detected
     if (total == 0):
         return -1
     
@@ -136,8 +150,8 @@ def LABConversion(img):
     brownPer = (brown/total)*100
 
     #show percentages
-    print "green: ", greenPer
     print "yellow: ", yellowPer
+    print "green: ", greenPer
     print "brown: ", brownPer
 
     #calculate ripeness
@@ -146,8 +160,8 @@ def LABConversion(img):
             return 4
         else:
             return 3
-    elif greenPer >= 30:
-        if greenPer >= 60:
+    elif greenPer >= 20:
+        if greenPer >= 50:
             return 0
         else:
             return 1
@@ -262,6 +276,11 @@ rawimg = cv2.imread(fp)
 #remove background
 noback = rmvBackground_minor(rawimg)
 
+
+###########################
+# prep for edge detection #
+###########################
+
 #convert grayscale
 grayimg = cv2.cvtColor(rawimg, cv2.COLOR_RGB2GRAY)
 
@@ -296,9 +315,12 @@ mask = getcontours(rawimg, image_close_lap, "Laplacian")
 banana_area = rmvBackground(rawimg)
 cv2.normalize(rawimg, banana_area, dtype=cv2.CV_8UC1 ,mask=mask)
 
+#compare edge to raw img
+if (checkvisiblepercent(rawimg, banana_area) == 0):
+    #unsuccessful edge
+    banana_area = rmvBackground(rawimg)
 
 showimg("banana_area", banana_area)
-
 ###################
 # judging ripness #
 ###################
