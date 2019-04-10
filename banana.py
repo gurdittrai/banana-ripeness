@@ -12,7 +12,7 @@ def showimg(name, img):
     
     #fit to window
     aratio = w/float(h)
-    h = 700
+    h = 300
     w = int(h * aratio)
     
 
@@ -31,7 +31,7 @@ def checkvisiblepercent(img, crop):
     diff_values = ((cv2.countNonZero(b2) / float(cv2.countNonZero(b1))) * 100, (cv2.countNonZero(g2) / float(cv2.countNonZero(g1))) * 100, (cv2.countNonZero(r2) / float(cv2.countNonZero(r1))) * 100)
     print "bgr ", diff_values
 
-    #requires 20% visiblity (300 total) (300 * 0.2 = 240)
+    #requires 10% visiblity (300 total) (300 * 0.2 = 240)
     if (np.sum(diff_values) < 30):
         return 0
 
@@ -114,30 +114,6 @@ def LABConversion(img):
     brown = brown + cv2.countNonZero(brownimg)
     print "brown", brown
 
-    #colours
-    # labImg = testimg
-    # green = 0.0
-    # yellow = 0.0
-    # brown = 0.0
-
-    # for i in range(height):
-    #     for k in range(width):
-    #         L,a,b = labImg[i][k]
-    #         a = a - 128
-    #         b = b - 128
-    #         L = L * 100 / 225
-    #         if L != 100 and L != 0:
-    #             if a < 18 and b > 47 and a > -17:
-    #                 yellow += 1
-    #             elif a < -7:
-    #                 green += 1
-    #             elif a > 10 and b < 47 and L > 19:
-    #                 brown += 1
-    
-    # print "yellow", yellow
-    # print "green", green
-    # print "brown", brown
-
     #total
     total = green + yellow + brown
     #no colours detected
@@ -203,20 +179,9 @@ def rmvBackground(img):
     brown_mask = cv2.inRange(img_hsv, B_lower, B_upper)
     brown_mask_inv = cv2.bitwise_not(brown_mask)
 
-    #mask on rgb img. Each of these are only used for testing purposes.
-    # Y_banana = cv2.bitwise_and(img_rgb, img_rgb, mask=yellow_mask)
-    # Y_background = cv2.bitwise_and(img_rgb, img_rgb, mask=yellow_mask_inv)
-    # G_banana = cv2.bitwise_and(img_rgb, img_rgb, mask=green_mask)
-    # G_background = cv2.bitwise_and(img_rgb, img_rgb, mask=green_mask_inv)
-    # B_banana = cv2.bitwise_and(img_rgb, img_rgb, mask=brown_mask)
-    # B_background = cv2.bitwise_and(img_rgb, img_rgb, mask=brown_mask_inv)
-
     #Combine masks into one picture to get to total banana
     banana = cv2.bitwise_and(img_hsv, img_hsv, mask=green_mask+yellow_mask+brown_mask)
     background = cv2.bitwise_and(img_hsv, img_hsv, mask=brown_mask_inv+yellow_mask_inv+green_mask_inv)
-
-    #showimg('background', background)
-    #showimg('banana', banana)
 
     #convert the picure thie the background removed back to rgb for colour space LAB analysis
     banana = cv2.cvtColor(banana, cv2.COLOR_HSV2BGR)
@@ -320,6 +285,8 @@ if (checkvisiblepercent(rawimg, banana_area) == 0):
     #unsuccessful edge
     banana_area = rmvBackground(rawimg)
 
+#show original and resulting images
+showimg("rawimg", rawimg)
 showimg("banana_area", banana_area)
 
 ###################
