@@ -32,7 +32,7 @@ def checkvisiblepercent(img, crop):
     print "bgr ", diff_values
 
     #requires 20% visiblity (300 total) (300 * 0.2 = 240)
-    if (np.sum(diff_values) < 60):
+    if (np.sum(diff_values) < 30):
         return 0
 
     return 1
@@ -321,9 +321,11 @@ if (checkvisiblepercent(rawimg, banana_area) == 0):
     banana_area = rmvBackground(rawimg)
 
 showimg("banana_area", banana_area)
+
 ###################
 # judging ripness #
 ###################
+
 #possible ripe values
 ans = ["banana is very unripe", "banana is unripe", "banana is ripe", "banana is over ripe", "banana is very over ripe"]
 
