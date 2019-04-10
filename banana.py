@@ -101,7 +101,7 @@ def LABConversion(img):
     brown = brown + cv2.countNonZero(brownimg)
     print "brown", brown
 
-    # #colours
+    #colours
     # labImg = testimg
     # green = 0.0
     # yellow = 0.0
@@ -141,7 +141,7 @@ def LABConversion(img):
     print "brown: ", brownPer
 
     #calculate ripeness
-    if brownPer >= 35:
+    if brownPer >= 20:
         if brownPer >= 50:
             return 4
         else:
@@ -178,8 +178,8 @@ def rmvBackground(img):
     Y_upper = np.array([28,255,255])
 
     #brown values
-    B_lower = np.array([2,20,20])
-    B_upper = np.array([12,255,150])
+    B_lower = np.array([2,20,20])#([2,20,20])
+    B_upper = np.array([75,255,150])#([12,255,150])
 
     #yellow mask
     yellow_mask = cv2.inRange(img_hsv, Y_lower, Y_upper)
@@ -207,7 +207,6 @@ def rmvBackground(img):
     #convert the picure thie the background removed back to rgb for colour space LAB analysis
     banana = cv2.cvtColor(banana, cv2.COLOR_HSV2BGR)
     return banana
-    showimg('banana', banana)
             
     
 def getcontours(rawimg, img, techname):
@@ -296,6 +295,7 @@ mask = getcontours(rawimg, image_close_lap, "Laplacian")
 #apply mask
 banana_area = rmvBackground(rawimg)
 cv2.normalize(rawimg, banana_area, dtype=cv2.CV_8UC1 ,mask=mask)
+
 
 showimg("banana_area", banana_area)
 
